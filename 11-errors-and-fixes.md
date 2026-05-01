@@ -43,6 +43,13 @@
 | 22 | `language="zh"` 不被支持 | Task 4 ASR 推理 | 语言参数需要完整名称 | 改为 `language="Chinese"`，服务内做归一化 |
 | 23 | heredoc 粘贴脚本结尾污染 | Task 4 脚本编辑 | 脚本结尾混入多余文本 | 用可靠方式重新覆盖脚本 |
 | 24 | 本地仓库缺少 Task 4 脚本 | Task 4 文档整理后复核 | 推理和服务脚本没有在本地仓库中保留 | 补回 `code/task4_asr_inference.py` 和 `code/task4_asr_server.py` |
+| 25 | 缺少 matplotlib | Task 5 IndexTTS2 import | IndexTTS2 import 失败 | 安装 matplotlib |
+| 26 | 缺少 audiotools | Task 5 模型加载 | 模型加载失败 | 安装 audiotools |
+| 27 | 缺少 tn | Task 5 Normalizer 加载 | 文本归一化组件加载失败 | 安装 tn |
+| 28 | tagger_cache 只读文件系统 | Task 5 推理初始化 | `/mnt/moark-models` 下缓存不可写 | 将缓存改到 `/tmp` |
+| 29 | 平台 multipart/form-data 导致 500 | Task 5 平台检测 | 本地 JSON 成功，平台检测 HTTP 500 | 服务端兼容 multipart/form-data |
+| 30 | FastAPI 异常包含音频二进制 | Task 5 form 异常处理 | `jsonable_encoder` 解码 bytes 触发 UnicodeDecodeError | 手动解析请求并避免返回二进制错误体 |
+| 31 | 响应缺少 b64_json | Task 5 平台检测 | API 响应格式错误 | 返回顶层 `b64_json` 和 `data[0].b64_json` |
 
 ---
 
@@ -408,7 +415,7 @@ VLLM_USE_V1=0 vllm serve /mnt/moark-models/Qwen3-8B \
 
 | 项目 | 内容 |
 |---|---|
-| 问题名称 | 误提交 `code/__pycache__/task3_image_inference.cpython-314.pyc` |
+| 问题名称 | 误提交 `task3_image_inference.cpython-314.pyc` |
 | 发生阶段 | Git 提交和仓库清理 |
 | 现象 / 报错 | Python 字节码缓存文件进入版本控制 |
 | 原因判断 | 初始 `.gitignore` 没有及时覆盖 `__pycache__/` 和 `*.pyc`，导致缓存文件被纳入提交 |
@@ -563,7 +570,149 @@ VLLM_USE_V1=0 vllm serve /mnt/moark-models/Qwen3-8B \
 
 ---
 
-## 26. 经验总结
+## 26. Task 5 缺少 matplotlib
+
+| 项目 | 内容 |
+|---|---|
+| 问题名称 | 缺少 matplotlib |
+| 发生阶段 | `IndexTTS2` import |
+| 现象 / 报错 | 缺少 `matplotlib`，导致 IndexTTS2 import 失败 |
+| 原因判断 | IndexTTS 仓库运行依赖不完整 |
+| 解决方法 | 安装缺失依赖后重新 import |
+| 对应截图或相关文件 | `assets/08-tts-import-error-matplotlib.png` |
+
+截图：
+
+![tts-import-error-matplotlib](assets/08-tts-import-error-matplotlib.png)
+
+---
+
+## 27. Task 5 缺少 audiotools
+
+| 项目 | 内容 |
+|---|---|
+| 问题名称 | 缺少 audiotools |
+| 发生阶段 | IndexTTS-2 模型加载 |
+| 现象 / 报错 | 缺少 `audiotools`，导致模型加载失败 |
+| 原因判断 | IndexTTS-2 需要音频处理相关依赖 |
+| 解决方法 | 安装 `audiotools` 后继续加载模型 |
+| 对应截图或相关文件 | `assets/08-tts-inference-error-audiotools.png` |
+
+截图：
+
+![tts-inference-error-audiotools](assets/08-tts-inference-error-audiotools.png)
+
+---
+
+## 28. Task 5 缺少 tn
+
+| 项目 | 内容 |
+|---|---|
+| 问题名称 | 缺少 tn |
+| 发生阶段 | Normalizer 加载 |
+| 现象 / 报错 | 缺少 `tn`，导致文本归一化组件加载失败 |
+| 原因判断 | IndexTTS-2 的文本处理链路依赖 `tn` |
+| 解决方法 | 安装 `tn` 相关依赖后继续推理 |
+| 对应截图或相关文件 | `assets/08-tts-inference-error-tn.png` |
+
+截图：
+
+![tts-inference-error-tn](assets/08-tts-inference-error-tn.png)
+
+---
+
+## 29. Task 5 tagger_cache 只读文件系统
+
+| 项目 | 内容 |
+|---|---|
+| 问题名称 | `indextts/utils/tagger_cache` 位于只读目录 |
+| 发生阶段 | IndexTTS 文本处理组件初始化 |
+| 现象 / 报错 | `indextts/utils/tagger_cache` 位于 `/mnt/moark-models` 下，触发 read-only file system |
+| 原因判断 | 模型和仓库目录在实验环境中不可写，缓存不能写回该路径 |
+| 解决方法 | 将缓存目录改到 `/tmp/indextts-cache`，避免写入 `/mnt/moark-models` |
+| 对应截图或相关文件 | `assets/08-tts-inference-error-readonly-cache.png`、`code/task5_tts_inference.py`、`code/task5_tts_server.py` |
+
+截图：
+
+![tts-inference-error-readonly-cache](assets/08-tts-inference-error-readonly-cache.png)
+
+---
+
+## 30. Task 5 平台 multipart/form-data 导致 500
+
+| 项目 | 内容 |
+|---|---|
+| 问题名称 | 平台 multipart/form-data 导致 500 |
+| 发生阶段 | 第一次平台检测 |
+| 现象 / 报错 | 本地 JSON curl 可成功，但平台检测返回 HTTP 状态码 500 |
+| 原因判断 | 初始服务只按 JSON 请求处理，平台实际发送 `multipart/form-data`，字段包含 `input`、`model`、`ref_text`、`ref_audio` 等 |
+| 解决方法 | 服务端同时兼容 `application/json` 和 `multipart/form-data` |
+| 对应截图或相关文件 | `assets/08-task5-check-failed-500.png`、`assets/3_task5_multipart_curl_success.png`、`code/task5_tts_server.py` |
+
+截图：
+
+![task5-check-failed-500](assets/08-task5-check-failed-500.png)
+
+![task5-multipart-curl-success](assets/3_task5_multipart_curl_success.png)
+
+---
+
+## 31. Task 5 FastAPI 校验异常包含音频二进制
+
+| 项目 | 内容 |
+|---|---|
+| 问题名称 | FastAPI 校验异常包含音频二进制 |
+| 发生阶段 | multipart/form-data 请求异常处理 |
+| 现象 / 报错 | FastAPI 校验异常中包含音频二进制，`jsonable_encoder` 尝试 utf-8 decode bytes，触发 `UnicodeDecodeError` |
+| 原因判断 | 不能让包含二进制音频内容的异常对象进入默认 JSON 编码路径 |
+| 解决方法 | 手动解析 `Request`，根据 `content-type` 区分 JSON 和 form，并在错误响应中只返回字符串错误信息 |
+| 对应截图或相关文件 | 截图待补；相关文件：`code/task5_tts_server.py` |
+
+说明：
+
+这个问题和平台 500 有关，核心是不要把上传音频的 bytes 放进错误响应。
+
+---
+
+## 32. Task 5 响应缺少 b64_json
+
+| 项目 | 内容 |
+|---|---|
+| 问题名称 | API 响应缺少有效 `b64_json` 字段 |
+| 发生阶段 | 第二次平台检测 |
+| 现象 / 报错 | 平台提示 API 响应格式错误，未包含有效的 `b64_json` 字段 |
+| 原因判断 | 平台检测不仅要求生成音频文件，还会检查 JSON 响应中是否存在可读取的 `b64_json` |
+| 解决方法 | 响应中同时返回顶层 `b64_json` 和 `data[0].b64_json` |
+| 对应截图或相关文件 | `assets/2_json_has_b64_json.png`、`assets/3_form_has_b64_json.png`、`code/task5_tts_server.py` |
+
+截图：
+
+![json-has-b64-json](assets/2_json_has_b64_json.png)
+
+![form-has-b64-json](assets/3_form_has_b64_json.png)
+
+---
+
+## 33. Task 5 最终通过
+
+| 项目 | 内容 |
+|---|---|
+| 问题名称 | Task 5 最终通过 |
+| 发生阶段 | 平台检测 |
+| 现象 / 报错 | 无新的报错，任务 5 检测通过 |
+| 原因判断 | 单次推理、WAV 输出、FastAPI 服务、multipart/form-data 兼容和 `b64_json` 响应均满足平台要求 |
+| 解决方法 | 保持服务运行后重新提交检测 |
+| 对应截图或相关文件 | `assets/5_submit_pass.png`、`assets/4_task5_audio_file_valid.png` |
+
+截图：
+
+![task5-submit-pass](assets/5_submit_pass.png)
+
+![task5-audio-file-valid](assets/4_task5_audio_file_valid.png)
+
+---
+
+## 34. 经验总结
 
 | 经验 | 说明 |
 |---|---|
@@ -579,3 +728,6 @@ VLLM_USE_V1=0 vllm serve /mnt/moark-models/Qwen3-8B \
 | `trust_remote_code=True` 不是万能解法 | 如果模型配置没有 `auto_map`，Transformers 自动类仍然可能无法识别 |
 | 上传音频接口要安装 `python-multipart` | FastAPI 接收 `multipart/form-data` 时缺少该包会影响服务启动或请求处理 |
 | 实验环境和本地仓库要及时同步 | 已通过检测的脚本需要及时补回仓库，避免后续文档无法复现 |
+| TTS 服务不能只测 JSON | 平台可能使用 `multipart/form-data`，需要同时兼容两种请求格式 |
+| 生成音频接口要关注响应格式 | 任务 5 平台会检查 `b64_json`，只保存 WAV 文件还不够 |
+| 模型目录只读时要迁移缓存 | `/mnt/moark-models` 下的缓存写入失败时，可以把缓存目录改到 `/tmp` |
