@@ -51,6 +51,10 @@
 | 30 | FastAPI 异常包含音频二进制 | Task 5 form 异常处理 | `jsonable_encoder` 解码 bytes 触发 UnicodeDecodeError | 手动解析请求并避免返回二进制错误体 |
 | 31 | 响应缺少 b64_json | Task 5 平台检测 | API 响应格式错误 | 返回顶层 `b64_json` 和 `data[0].b64_json` |
 | 32 | uvicorn 模块路径导入失败 | Task 6 OCR 服务启动 | `code.task6_ocr_server:app` 无法正确导入 | 使用 `--app-dir /data/code task6_ocr_server:app` |
+| 33 | 非 vLLM 镜像没有 vllm | Task 7 环境检查 | 找不到 vLLM | 切换到 vLLM 镜像 |
+| 34 | vLLM 不识别 `--task embed` | Task 7 服务启动 | vLLM 0.15.0 参数错误 | 去掉 `--task embed` |
+| 35 | embeddings 默认返回 4096 维 | Task 7 API 验证 | 维度不符合 1024 要求 | 请求中加入 `dimensions=1024` |
+| 36 | `/data/exam` 不存在 | Task 7 日志和输出准备 | 日志重定向或写文件失败 | 先创建 `/data/exam` |
 
 ---
 
@@ -754,7 +758,94 @@ VLLM_USE_V1=0 vllm serve /mnt/moark-models/Qwen3-8B \
 
 ---
 
-## 36. 经验总结
+## 36. Task 7 非 vLLM 镜像没有 vllm
+
+| 项目 | 内容 |
+|---|---|
+| 问题名称 | 非 vLLM 镜像没有 vLLM |
+| 发生阶段 | Task 7 环境检查 |
+| 现象 / 报错 | 当前环境找不到 `vllm` 命令或包 |
+| 原因判断 | Task 7 需要部署 `/v1/embeddings`，普通 PyTorch 镜像不包含 vLLM |
+| 解决方法 | 切换到 vLLM 镜像继续任务 |
+| 对应截图或相关文件 | `assets/10-env-check-vllm-missing.png` |
+
+截图：
+
+![env-check-vllm-missing](assets/10-env-check-vllm-missing.png)
+
+---
+
+## 37. Task 7 vLLM 不识别 `--task embed`
+
+| 项目 | 内容 |
+|---|---|
+| 问题名称 | vLLM 0.15.0 不识别 `--task embed` |
+| 发生阶段 | Qwen3-Embedding-8B 服务启动 |
+| 现象 / 报错 | 启动命令中加入 `--task embed` 后参数不被识别 |
+| 原因判断 | 当前 vLLM 版本不支持该参数写法 |
+| 解决方法 | 去掉 `--task embed`，使用 `vllm serve` 和 `--served-model-name Qwen3-Embedding-8B` |
+| 对应截图或相关文件 | `assets/10-vllm-task-arg-error.png` |
+
+截图：
+
+![vllm-task-arg-error](assets/10-vllm-task-arg-error.png)
+
+---
+
+## 38. Task 7 embeddings 默认返回 4096 维
+
+| 项目 | 内容 |
+|---|---|
+| 问题名称 | 直接请求 embeddings 默认返回 4096 维 |
+| 发生阶段 | `/v1/embeddings` 接口验证 |
+| 现象 / 报错 | 默认 embedding 维度为 4096，不满足任务要求的 1024 维 |
+| 原因判断 | Qwen3-Embedding-8B 默认输出维度不是认证要求维度 |
+| 解决方法 | 在请求体中加入 `dimensions=1024` |
+| 对应截图或相关文件 | `assets/10-embedding-api-1024-ok.png`、`code/task7_embedding_rerank.py` |
+
+截图：
+
+![embedding-api-1024-ok](assets/10-embedding-api-1024-ok.png)
+
+---
+
+## 39. Task 7 `/data/exam` 不存在导致日志重定向失败
+
+| 项目 | 内容 |
+|---|---|
+| 问题名称 | `/data/exam` 不存在时重定向日志会失败 |
+| 发生阶段 | 启动服务或运行脚本前 |
+| 现象 / 报错 | 将日志或输出写到 `/data/exam/...` 时失败 |
+| 原因判断 | 目标目录尚未创建 |
+| 解决方法 | 先执行 `mkdir -p /data/exam`，脚本中也使用 `os.makedirs(..., exist_ok=True)` |
+| 对应截图或相关文件 | 截图待补；相关文件：`code/task7_embedding_rerank.py` |
+
+说明：
+
+这个问题不是模型或向量库问题，而是输出目录准备问题。后续任务中凡是写 `/data/exam`，都应先创建目录。
+
+---
+
+## 40. Task 7 最终通过
+
+| 项目 | 内容 |
+|---|---|
+| 问题名称 | Task 7 最终通过 |
+| 发生阶段 | 平台检测 |
+| 现象 / 报错 | 无新的报错，任务 7 检测通过 |
+| 原因判断 | Embedding API、1024 维向量、Chroma 入库、Top-10 检索、reranker 重排和结果 JSON 均满足任务要求 |
+| 解决方法 | 生成 `/data/exam/reranking_results.json` 后提交检测 |
+| 对应截图或相关文件 | `assets/10-task7-pass.png`、`assets/10-reranking-json-check.png`、`code/task7_embedding_rerank.py` |
+
+截图：
+
+![task7-pass](assets/10-task7-pass.png)
+
+![reranking-json-check](assets/10-reranking-json-check.png)
+
+---
+
+## 41. 经验总结
 
 | 经验 | 说明 |
 |---|---|
@@ -774,3 +865,5 @@ VLLM_USE_V1=0 vllm serve /mnt/moark-models/Qwen3-8B \
 | 生成音频接口要关注响应格式 | 任务 5 平台会检查 `b64_json`，只保存 WAV 文件还不够 |
 | 模型目录只读时要迁移缓存 | `/mnt/moark-models` 下的缓存写入失败时，可以把缓存目录改到 `/tmp` |
 | uvicorn 启动脚本时避免 `code.xxx` | `code` 容易和标准库模块名冲突，服务脚本在 `/data/code` 时可用 `--app-dir /data/code` |
+| Embedding 任务要检查向量维度 | `/v1/embeddings` 默认维度可能不符合任务要求，需要显式设置 `dimensions` |
+| 向量库任务要保存中间结果 | chunk 数量、Top-10 检索和 rerank 结果都应写入 JSON，方便平台和人工复核 |

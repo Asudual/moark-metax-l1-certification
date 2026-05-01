@@ -43,3 +43,20 @@
 8. uvicorn 使用 code.task6_ocr_server:app 启动失败后，改用 --app-dir /data/code task6_ocr_server:app；
 9. 使用 curl 上传 /mnt/moark-models/L1_exam/ocr_test_image.jpg 测试接口；
 10. 平台检测任务 6 通过。
+
+## 任务 7：部署向量化模型与向量数据库
+
+关键流水：
+
+1. 选择 vLLM 镜像，普通镜像中没有 vLLM；
+2. 安装 `chromadb` 和 `requests`；
+3. 检查 `/mnt/moark-models/Qwen3-Embedding-8B`、`/mnt/moark-models/bge-reranker-v2-m3` 和 `/mnt/moark-models/L1_exam/embedding_documents.txt`；
+4. 使用 vLLM 启动 Qwen3-Embedding-8B，服务端口为 8188；
+5. 验证 `/v1/embeddings` 可用；
+6. 直接请求 embeddings 默认返回 4096 维，加入 `dimensions=1024` 后返回 1024 维；
+7. 读取文档并切片，至少生成 10 个 chunk；
+8. 使用 Qwen3-Embedding-8B 生成向量并写入 Chroma；
+9. 从 Chroma 检索 Top-10 候选；
+10. 使用 bge-reranker-v2-m3 对 Top-10 重排；
+11. 生成 `/data/exam/reranking_results.json`；
+12. Task 7 检测通过。
