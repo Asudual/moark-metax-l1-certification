@@ -87,6 +87,7 @@
 ## 7. 录屏状态
 
 - [ ] 录屏大纲已完成（`12-recording-outline.md`）
+- [x] 录屏链接已补充到 `README.md` 和 `12-recording-outline.md`
 - [ ] 录屏文件已录制并保存到 `recordings/`
 
 ---
