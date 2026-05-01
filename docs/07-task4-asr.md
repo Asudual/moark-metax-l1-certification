@@ -189,7 +189,76 @@ curl 测试截图：
 
 ![任务 4 平台检测通过](../assets/07-task4-pass.png)
 
-## 8. Git 提交
+## 8. 问题记录与解决过程
+
+### 8.1 依赖安装与版本检查
+
+任务 4 需要使用 `qwen-asr` 加载 Qwen3-ASR 模型，并通过 FastAPI 接收音频上传。由于接口使用 `multipart/form-data`，还需要确保 `python-multipart` 可用。
+
+处理过程：
+
+1. 检查 PyTorch、FastAPI、uvicorn、python-multipart、qwen-asr 等依赖；
+2. 安装任务所需的基础依赖；
+3. 安装并确认 `qwen-asr` 可导入；
+4. 再进入模型路径、测试音频路径和单次推理检查。
+
+相关过程只以真实截图记录：
+
+![任务 4 包检查](../assets/07-task4-package-check.png)
+
+![任务 4 安装依赖](../assets/07-task4-install-deps.png)
+
+![安装 qwen-asr](../assets/07-task4-install-qwen-asr.png)
+
+### 8.2 同时检查模型路径和测试音频路径
+
+任务 4 不只需要确认模型目录存在，还需要确认测试音频存在，否则单次推理无法完成。
+
+本次使用的 ASR 模型路径：
+
+```text
+/mnt/moark-models/Qwen3-ASR-1.7B
+```
+
+本次使用的测试音频路径：
+
+```text
+/mnt/moark-models/L1_exam/asr_demo.wav
+```
+
+路径检查截图：
+
+![ASR 模型与音频路径检查](../assets/07-asr-model-audio-path-check.png)
+
+### 8.3 language=zh 的服务内归一化
+
+FastAPI 接口中 `language` 字段可以传入 `zh`。服务内部会通过 `normalize_language` 将常见语言简写归一化。
+
+在本任务中：
+
+```text
+zh -> Chinese
+```
+
+这样处理是为了让接口调用保持简单，同时满足 `qwen-asr` 推理调用中对语言参数的实际要求。
+
+### 8.4 先单次推理，再封装 FastAPI
+
+处理顺序是先用 `code/task4_asr_inference.py` 完成一次本地音频识别，确认模型可加载、测试音频可读取、识别文本可写入 `/data/exam/asr_output.txt`。
+
+单次推理通过后，再将同一模型加载和转写流程封装到 `code/task4_asr_server.py`，通过 FastAPI 暴露 `/v1/audio/transcriptions` 接口。
+
+这样可以把问题拆开：如果单次推理失败，优先排查依赖、模型路径、音频路径和模型调用参数；如果单次推理成功但接口失败，再排查 multipart 上传字段、端口和响应格式。
+
+### 8.5 curl 响应记录方式
+
+curl 测试已经完成，并有截图记录：
+
+![FastAPI ASR curl 测试](../assets/07-fastapi-asr-curl-test.png)
+
+但实际 curl 响应没有保存为文本日志文件。因此本文只保留示例命令和真实截图，不编造不存在的响应正文、命令输出或额外截图。
+
+## 9. Git 提交
 
 任务 4 相关 Git 记录来自当前仓库历史：
 
@@ -209,7 +278,7 @@ v0.3-task4-asr
 7668913 chore: add missing task3 task4 scripts and ignore cache
 ```
 
-## 9. 本任务总结
+## 10. 本任务总结
 
 任务 4 已完成 `Qwen3-ASR-1.7B` 的单次语音识别推理和 FastAPI 服务部署，接口路径为 `/v1/audio/transcriptions`，上传方式为 `multipart/form-data`，服务端口为 `8188`。
 

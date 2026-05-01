@@ -168,7 +168,55 @@ curl 测试截图：
 
 ![任务 3 平台检测通过](../assets/06-task3-pass.png)
 
-## 8. Git 提交
+## 8. 问题记录与解决过程
+
+### 8.1 依赖安装与版本检查
+
+任务 3 需要使用 diffusers 加载图像生成模型，同时还需要 accelerate、transformers、sentencepiece、safetensors 等依赖配合运行。
+
+处理过程：
+
+1. 先检查当前环境中 diffusers、accelerate 等依赖是否已经安装；
+2. 如果版本不满足模型 pipeline 要求，再安装或升级相关依赖；
+3. 安装完成后再进入模型路径检查和单次推理。
+
+相关过程只以真实截图记录：
+
+![任务 3 包检查](../assets/06-task3-package-check.png)
+
+![安装 diffusers 和 accelerate](../assets/06-install-diffusers-accelerate.png)
+
+### 8.2 模型必须从本地路径加载
+
+任务 3 使用的模型必须从本地模型目录加载：
+
+```text
+/mnt/moark-models/Z-Image-Turbo
+```
+
+本任务没有从公网下载模型，也没有在文档中补写不存在的下载输出。服务脚本和单次推理脚本都围绕该本地路径完成验证。
+
+模型路径检查截图：
+
+![Z-Image-Turbo 模型路径检查](../assets/06-image-model-path-check.png)
+
+### 8.3 先单次推理，再封装 FastAPI
+
+处理顺序是先用 `code/task3_image_inference.py` 完成一次最小推理，确认模型可加载、pipeline 可运行、输出文件可生成。
+
+单次推理通过后，再将同一模型加载流程封装到 `code/task3_image_server.py`，通过 FastAPI 暴露 `/v1/images/generations` 接口。
+
+这样可以把问题拆开：如果单次推理失败，优先排查模型路径、依赖版本和 GPU 环境；如果单次推理成功但接口失败，再排查 FastAPI 请求格式、端口和响应格式。
+
+### 8.4 curl 响应记录方式
+
+curl 测试已经完成，并有截图记录：
+
+![FastAPI 图像生成 curl 测试](../assets/06-fastapi-curl-test.png)
+
+但实际 curl 响应没有保存为文本日志文件。因此本文只保留示例命令和真实截图，不编造不存在的响应正文、命令输出或额外截图。
+
+## 9. Git 提交
 
 任务 3 相关 Git 记录来自当前仓库历史：
 
@@ -188,7 +236,7 @@ v0.2-task3-image-model
 7668913 chore: add missing task3 task4 scripts and ignore cache
 ```
 
-## 9. 本任务总结
+## 10. 本任务总结
 
 任务 3 已完成 `Z-Image-Turbo` 图像生成模型的本地推理和 FastAPI 服务部署，接口路径为 `/v1/images/generations`，服务端口为 `8188`。
 
