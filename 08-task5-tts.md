@@ -1,4 +1,4 @@
-# 任务 5：部署语音合成模型 TTS
+# 08｜任务 5：部署语音合成模型 TTS
 
 本文记录模力方舟 L1 认证任务 5 的完整实验过程。任务 5 的重点是使用 IndexTTS-2 完成语音合成，生成指定输出文件，并部署一个兼容平台检测请求格式的 FastAPI 服务。
 
@@ -23,7 +23,7 @@
 
 平台检测通过截图：
 
-![任务 5 平台检测通过](assets/5_submit_pass.png)
+![任务 5 平台检测通过](assets/08-task5-pass.png)
 
 ## 2. 任务要求整理
 
@@ -260,11 +260,11 @@ curl 测试截图：
 
 JSON 响应包含 `b64_json` 的检查截图：
 
-![JSON has b64_json](assets/2_json_has_b64_json.png)
+![JSON has b64_json](assets/08-tts-json-has-b64-json.png)
 
 form 响应包含 `b64_json` 的检查截图：
 
-![form has b64_json](assets/3_form_has_b64_json.png)
+![form has b64_json](assets/08-tts-form-has-b64-json.png)
 
 ## 8. 输出文件检查
 
@@ -286,7 +286,7 @@ FastAPI 输出文件检查截图：
 
 音频文件有效性检查截图：
 
-![Task 5 audio file valid](assets/4_task5_audio_file_valid.png)
+![Task 5 audio file valid](assets/08-tts-audio-file-valid.png)
 
 ## 9. 平台检测结果
 
@@ -312,7 +312,7 @@ API 响应格式错误，未包含有效的 b64_json 字段
 
 最终通过截图：
 
-![Task 5 submit pass](assets/5_submit_pass.png)
+![Task 5 submit pass](assets/08-task5-pass.png)
 
 ## 10. 遇到的问题与解决方案
 
@@ -372,11 +372,11 @@ API 响应格式错误，未包含有效的 b64_json 字段
 | 现象 / 报错 | 本地 JSON curl 可成功，但平台检测返回 HTTP 500 |
 | 原因判断 | 初始服务只按 JSON 请求处理，平台实际发送 `multipart/form-data` |
 | 解决方法 | 服务端改为同时解析 JSON 和 multipart/form-data |
-| 对应截图 | `assets/08-task5-check-failed-500.png`、`assets/3_task5_multipart_curl_success.png` |
+| 对应截图 | `assets/08-task5-check-failed-500.png`、`assets/08-tts-multipart-curl-success.png` |
 
 ![Task 5 500](assets/08-task5-check-failed-500.png)
 
-![multipart curl success](assets/3_task5_multipart_curl_success.png)
+![multipart curl success](assets/08-tts-multipart-curl-success.png)
 
 ### 10.6 FastAPI 校验异常包含音频二进制
 
@@ -386,7 +386,7 @@ API 响应格式错误，未包含有效的 b64_json 字段
 | 现象 / 报错 | FastAPI 校验异常中包含音频二进制，`jsonable_encoder` 尝试 utf-8 decode bytes，触发 `UnicodeDecodeError` |
 | 原因判断 | 不能让包含二进制文件内容的校验异常直接进入默认 JSON 编码路径 |
 | 解决方法 | 手动解析 request，根据 `content-type` 区分 JSON 和 form，避免把音频 bytes 放进错误响应 |
-| 对应截图 | 截图待补 |
+| 对应截图 | 当时未截图，仅保留文字复盘 |
 
 ### 10.7 缺少 b64_json 导致检测失败
 
@@ -396,7 +396,7 @@ API 响应格式错误，未包含有效的 b64_json 字段
 | 现象 / 报错 | API 响应格式错误，未包含有效 `b64_json` 字段 |
 | 原因判断 | 平台检测不仅要求生成音频，还要求响应 JSON 中能读到 `b64_json` |
 | 解决方法 | 响应中加入顶层 `b64_json` 和 `data[0].b64_json` |
-| 对应截图 | `assets/2_json_has_b64_json.png`、`assets/3_form_has_b64_json.png` |
+| 对应截图 | `assets/08-tts-json-has-b64-json.png`、`assets/08-tts-form-has-b64-json.png` |
 
 ## 11. 截图记录
 
@@ -412,11 +412,11 @@ API 响应格式错误，未包含有效的 b64_json 字段
 | `assets/08-fastapi-tts-curl-test.png` | curl 测试 |
 | `assets/08-fastapi-tts-output-file-check.png` | API 输出文件检查 |
 | `assets/08-task5-check-failed-500.png` | 平台 500 失败 |
-| `assets/2_json_has_b64_json.png` | JSON 响应包含 b64_json |
-| `assets/3_form_has_b64_json.png` | form 响应包含 b64_json |
-| `assets/4_task5_audio_file_valid.png` | 音频文件有效性检查 |
-| `assets/5_submit_pass.png` | 平台检测通过 |
-| 截图待补 | FastAPI 校验异常包含音频二进制导致 UnicodeDecodeError |
+| `assets/08-tts-json-has-b64-json.png` | JSON 响应包含 b64_json |
+| `assets/08-tts-form-has-b64-json.png` | form 响应包含 b64_json |
+| `assets/08-tts-audio-file-valid.png` | 音频文件有效性检查 |
+| `assets/08-task5-pass.png` | 平台检测通过 |
+| 无截图记录 | FastAPI 校验异常包含音频二进制导致 UnicodeDecodeError |
 
 ## 12. 复现检查清单
 

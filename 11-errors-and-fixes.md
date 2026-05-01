@@ -1,17 +1,20 @@
 # 11｜问题与解决记录
 
-本文记录任务 2、任务 3、任务 4 中真实发生过的问题与解决过程，信息来源为：
+本文记录任务 2～任务 7 中真实发生过的问题与解决过程，信息来源为：
 
 - `05-task2-text-model.md`
 - `06-task3-image-model.md`
 - `07-task4-asr.md`
+- `08-task5-tts.md`
+- `09-task6-ocr.md`
+- `10-task7-embedding-rerank.md`
 - `00-running-log.md`
 - `docs-check-report.md`
 - `assets/rename-report.md`
 - `assets/`
 - `code/`
 
-重点是保留文本生成、图像生成、ASR 语音识别中的真实排错链，不把失败过程删掉。失败过程本身也是实验手册的一部分，可以帮助后续同学判断问题发生在 Python 代码、依赖安装、模型路径、模型调用方式、接口封装，还是底层实例状态。
+重点是保留文本生成、图像生成、ASR 语音识别、TTS 语音合成、OCR 文字识别、Embedding / Rerank 向量检索中的真实排错链，不把失败过程删掉。失败过程本身也是实验手册的一部分，可以帮助后续同学判断问题发生在 Python 代码、依赖安装、模型路径、模型调用方式、接口封装，还是底层实例状态。
 
 ---
 
@@ -372,7 +375,7 @@ VLLM_USE_V1=0 vllm serve /mnt/moark-models/Qwen3-8B \
 | 现象 / 报错 | Vim 提示存在交换文件，说明可能有旧 Vim 进程或上次编辑异常退出 |
 | 原因判断 | 之前编辑脚本时 Vim 会创建 swap 文件；如果会话异常退出或旧进程未清理，再次打开文件会触发提示 |
 | 解决方法 | 先确认没有仍在编辑该文件的 Vim 进程，再清理旧 swap 文件，然后重新编辑脚本 |
-| 对应截图或相关文件 | 截图待补；相关文件：`code/task3_image_inference.py` |
+| 对应截图或相关文件 | 当时未截图，仅保留文字复盘；相关文件：`code/task3_image_inference.py` |
 
 说明：
 
@@ -408,7 +411,7 @@ VLLM_USE_V1=0 vllm serve /mnt/moark-models/Qwen3-8B \
 | 现象 / 报错 | 任务 3 已完成 FastAPI 部署，但本地仓库中曾缺少对应服务脚本 |
 | 原因判断 | 云端实验环境和本地仓库文件不同步，导致已通过检测的服务脚本没有完整保留到仓库 |
 | 解决方法 | 按已通过检测的接口行为补回 `code/task3_image_server.py`，接口为 `/v1/images/generations`，服务端口为 `8188` |
-| 对应截图或相关文件 | 截图待补；相关文件：`code/task3_image_server.py` |
+| 对应截图或相关文件 | 当时未截图，仅保留文字复盘；相关文件：`code/task3_image_server.py` |
 
 说明：
 
@@ -425,7 +428,7 @@ VLLM_USE_V1=0 vllm serve /mnt/moark-models/Qwen3-8B \
 | 现象 / 报错 | Python 字节码缓存文件进入版本控制 |
 | 原因判断 | 初始 `.gitignore` 没有及时覆盖 `__pycache__/` 和 `*.pyc`，导致缓存文件被纳入提交 |
 | 解决方法 | 更新 `.gitignore` 忽略 Python 缓存文件，并通过 `git rm --cached` 从版本控制中移除已跟踪的 `.pyc` |
-| 对应截图或相关文件 | 截图待补；相关文件：`.gitignore`、`code/task3_image_inference.py` |
+| 对应截图或相关文件 | 当时未截图，仅保留文字复盘；相关文件：`.gitignore`、`code/task3_image_inference.py` |
 
 说明：
 
@@ -533,7 +536,7 @@ VLLM_USE_V1=0 vllm serve /mnt/moark-models/Qwen3-8B \
 | 现象 / 报错 | 模型加载成功后，语言参数使用 `zh` 不能满足 `qwen-asr` 的语言参数要求 |
 | 原因判断 | `qwen-asr` 需要使用完整语言名称，中文应传 `Chinese` |
 | 解决方法 | 单次推理中使用 `language="Chinese"`；FastAPI 服务中保留接口入参 `language=zh`，再通过 `normalize_language()` 归一化为 `Chinese` |
-| 对应截图或相关文件 | 截图待补；相关文件：`code/task4_asr_inference.py`、`code/task4_asr_server.py` |
+| 对应截图或相关文件 | 当时未截图，仅保留文字复盘；相关文件：`code/task4_asr_inference.py`、`code/task4_asr_server.py` |
 
 说明：
 
@@ -550,7 +553,7 @@ VLLM_USE_V1=0 vllm serve /mnt/moark-models/Qwen3-8B \
 | 现象 / 报错 | 使用 heredoc 粘贴脚本时，结尾标记或后续命令可能混入脚本文本 |
 | 原因判断 | 多行粘贴在终端中容易受到结束符、复制范围或提示符影响，尤其是在快速覆盖脚本时 |
 | 解决方法 | 后续改用更可靠的方式重新覆盖脚本，例如 Python `Path.write_text()` 或重新完整覆盖目标脚本 |
-| 对应截图或相关文件 | 截图待补；相关文件：`code/task4_asr_inference.py`、`code/task4_asr_server.py` |
+| 对应截图或相关文件 | 当时未截图，仅保留文字复盘；相关文件：`code/task4_asr_inference.py`、`code/task4_asr_server.py` |
 
 说明：
 
@@ -567,7 +570,7 @@ VLLM_USE_V1=0 vllm serve /mnt/moark-models/Qwen3-8B \
 | 现象 / 报错 | 任务 4 已完成单次推理和 FastAPI 部署，但本地仓库中曾缺少对应脚本 |
 | 原因判断 | 云端实验环境和本地仓库文件不同步，导致已通过检测的推理脚本和服务脚本没有完整保留到仓库 |
 | 解决方法 | 补回 `code/task4_asr_inference.py` 和 `code/task4_asr_server.py`，保留 `/v1/audio/transcriptions`、`multipart/form-data` 上传和语言归一化逻辑 |
-| 对应截图或相关文件 | 截图待补；相关文件：`code/task4_asr_inference.py`、`code/task4_asr_server.py` |
+| 对应截图或相关文件 | 当时未截图，仅保留文字复盘；相关文件：`code/task4_asr_inference.py`、`code/task4_asr_server.py` |
 
 说明：
 
@@ -652,13 +655,13 @@ VLLM_USE_V1=0 vllm serve /mnt/moark-models/Qwen3-8B \
 | 现象 / 报错 | 本地 JSON curl 可成功，但平台检测返回 HTTP 状态码 500 |
 | 原因判断 | 初始服务只按 JSON 请求处理，平台实际发送 `multipart/form-data`，字段包含 `input`、`model`、`ref_text`、`ref_audio` 等 |
 | 解决方法 | 服务端同时兼容 `application/json` 和 `multipart/form-data` |
-| 对应截图或相关文件 | `assets/08-task5-check-failed-500.png`、`assets/3_task5_multipart_curl_success.png`、`code/task5_tts_server.py` |
+| 对应截图或相关文件 | `assets/08-task5-check-failed-500.png`、`assets/08-tts-multipart-curl-success.png`、`code/task5_tts_server.py` |
 
 截图：
 
 ![task5-check-failed-500](assets/08-task5-check-failed-500.png)
 
-![task5-multipart-curl-success](assets/3_task5_multipart_curl_success.png)
+![task5-multipart-curl-success](assets/08-tts-multipart-curl-success.png)
 
 ---
 
@@ -671,7 +674,7 @@ VLLM_USE_V1=0 vllm serve /mnt/moark-models/Qwen3-8B \
 | 现象 / 报错 | FastAPI 校验异常中包含音频二进制，`jsonable_encoder` 尝试 utf-8 decode bytes，触发 `UnicodeDecodeError` |
 | 原因判断 | 不能让包含二进制音频内容的异常对象进入默认 JSON 编码路径 |
 | 解决方法 | 手动解析 `Request`，根据 `content-type` 区分 JSON 和 form，并在错误响应中只返回字符串错误信息 |
-| 对应截图或相关文件 | 截图待补；相关文件：`code/task5_tts_server.py` |
+| 对应截图或相关文件 | 当时未截图，仅保留文字复盘；相关文件：`code/task5_tts_server.py` |
 
 说明：
 
@@ -688,13 +691,13 @@ VLLM_USE_V1=0 vllm serve /mnt/moark-models/Qwen3-8B \
 | 现象 / 报错 | 平台提示 API 响应格式错误，未包含有效的 `b64_json` 字段 |
 | 原因判断 | 平台检测不仅要求生成音频文件，还会检查 JSON 响应中是否存在可读取的 `b64_json` |
 | 解决方法 | 响应中同时返回顶层 `b64_json` 和 `data[0].b64_json` |
-| 对应截图或相关文件 | `assets/2_json_has_b64_json.png`、`assets/3_form_has_b64_json.png`、`code/task5_tts_server.py` |
+| 对应截图或相关文件 | `assets/08-tts-json-has-b64-json.png`、`assets/08-tts-form-has-b64-json.png`、`code/task5_tts_server.py` |
 
 截图：
 
-![json-has-b64-json](assets/2_json_has_b64_json.png)
+![json-has-b64-json](assets/08-tts-json-has-b64-json.png)
 
-![form-has-b64-json](assets/3_form_has_b64_json.png)
+![form-has-b64-json](assets/08-tts-form-has-b64-json.png)
 
 ---
 
@@ -707,13 +710,13 @@ VLLM_USE_V1=0 vllm serve /mnt/moark-models/Qwen3-8B \
 | 现象 / 报错 | 无新的报错，任务 5 检测通过 |
 | 原因判断 | 单次推理、WAV 输出、FastAPI 服务、multipart/form-data 兼容和 `b64_json` 响应均满足平台要求 |
 | 解决方法 | 保持服务运行后重新提交检测 |
-| 对应截图或相关文件 | `assets/5_submit_pass.png`、`assets/4_task5_audio_file_valid.png` |
+| 对应截图或相关文件 | `assets/08-task5-pass.png`、`assets/08-tts-audio-file-valid.png` |
 
 截图：
 
-![task5-submit-pass](assets/5_submit_pass.png)
+![task5-submit-pass](assets/08-task5-pass.png)
 
-![task5-audio-file-valid](assets/4_task5_audio_file_valid.png)
+![task5-audio-file-valid](assets/08-tts-audio-file-valid.png)
 
 ---
 
@@ -818,7 +821,7 @@ VLLM_USE_V1=0 vllm serve /mnt/moark-models/Qwen3-8B \
 | 现象 / 报错 | 将日志或输出写到 `/data/exam/...` 时失败 |
 | 原因判断 | 目标目录尚未创建 |
 | 解决方法 | 先执行 `mkdir -p /data/exam`，脚本中也使用 `os.makedirs(..., exist_ok=True)` |
-| 对应截图或相关文件 | 截图待补；相关文件：`code/task7_embedding_rerank.py` |
+| 对应截图或相关文件 | 当时未截图，仅保留文字复盘；相关文件：`code/task7_embedding_rerank.py` |
 
 说明：
 

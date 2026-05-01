@@ -397,7 +397,7 @@ API 调用后，服务会把识别结果写入该文件。
 | 现象 / 报错 | `language="zh"` 不被支持 |
 | 原因判断 | `qwen-asr` 需要完整语言名称 |
 | 解决方法 | 单次推理使用 `language="Chinese"`；API 服务允许传 `zh`，但服务内部归一化为 `Chinese` |
-| 对应截图或文件 | 截图待补；相关文件：`code/task4_asr_inference.py`、`code/task4_asr_server.py` |
+| 对应截图或文件 | 当时未截图，已在错误记录中保留文字复盘；相关文件：`code/task4_asr_inference.py`、`code/task4_asr_server.py` |
 
 ### 10.7 heredoc 粘贴脚本结尾污染
 
@@ -407,7 +407,7 @@ API 调用后，服务会把识别结果写入该文件。
 | 现象 / 报错 | 使用 heredoc 粘贴脚本时，结尾可能混入多余文本 |
 | 原因判断 | 多行终端粘贴容易受到结束符或复制范围影响 |
 | 解决方法 | 后续改用 Python `Path.write_text()` 或重新覆盖脚本 |
-| 对应截图或文件 | 截图待补；相关文件：`code/task4_asr_inference.py`、`code/task4_asr_server.py` |
+| 对应截图或文件 | 当时未截图，已在错误记录中保留文字复盘；相关文件：`code/task4_asr_inference.py`、`code/task4_asr_server.py` |
 
 ### 10.8 本地仓库后来缺少 Task 4 脚本
 
@@ -417,7 +417,7 @@ API 调用后，服务会把识别结果写入该文件。
 | 现象 / 报错 | 任务 4 已通过，但本地仓库曾缺少推理脚本和服务脚本 |
 | 原因判断 | 云端实验环境和本地仓库文件不同步 |
 | 解决方法 | 补回 `code/task4_asr_inference.py` 和 `code/task4_asr_server.py` |
-| 对应截图或文件 | 截图待补；相关文件：`code/task4_asr_inference.py`、`code/task4_asr_server.py` |
+| 对应截图或文件 | 当时未截图，已在错误记录中保留文字复盘；相关文件：`code/task4_asr_inference.py`、`code/task4_asr_server.py` |
 
 ## 11. 截图记录
 
@@ -436,9 +436,9 @@ API 调用后，服务会把识别结果写入该文件。
 | `assets/07-task4-pass.png` | 平台检测通过 |
 | `assets/11-task4-transformers-qwen3-asr-unsupported.png` | Transformers 不识别 qwen3_asr |
 | `assets/11-task4-qwen-asr-backend-arg-error.png` | qwen-asr backend 参数错误 |
-| 截图待补 | `language="zh"` 不被支持 |
-| 截图待补 | heredoc 粘贴脚本结尾污染 |
-| 截图待补 | 本地仓库缺少 Task 4 脚本 |
+| 无截图记录 | `language="zh"` 不被支持 |
+| 无截图记录 | heredoc 粘贴脚本结尾污染 |
+| 无截图记录 | 本地仓库缺少 Task 4 脚本 |
 
 ## 12. 复现检查清单
 

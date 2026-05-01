@@ -239,7 +239,7 @@ python code/task7_embedding_rerank.py
 | 现象 / 报错 | 将日志重定向到 `/data/exam/...` 时失败 |
 | 原因判断 | `/data/exam` 目录尚未创建 |
 | 解决方法 | 先执行 `mkdir -p /data/exam`，脚本中也使用 `os.makedirs(..., exist_ok=True)` |
-| 对应截图 | 截图待补 |
+| 对应截图 | 当时未截图，仅保留文字复盘 |
 
 ## 10. 截图记录
 

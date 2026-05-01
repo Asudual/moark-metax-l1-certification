@@ -376,7 +376,7 @@ API 调用后的输出检查截图：
 | 现象 / 报错 | Vim 提示存在 `.swp` 交换文件 |
 | 原因判断 | 旧 Vim 进程或上次异常退出留下了 swap 文件 |
 | 解决方法 | 先清理旧 Vim 进程，再确认并删除旧 swap 文件 |
-| 对应截图或文件 | 截图待补；相关文件：`code/task3_image_inference.py` |
+| 对应截图或文件 | 当时未截图，仅保留文字复盘；相关文件：`code/task3_image_inference.py` |
 
 ### 10.4 `file` 命令不存在
 
@@ -396,7 +396,7 @@ API 调用后的输出检查截图：
 | 现象 / 报错 | 任务 3 已通过，但本地仓库曾缺少 FastAPI 服务脚本 |
 | 原因判断 | 云端实验环境和本地仓库文件不同步 |
 | 解决方法 | 补回 `code/task3_image_server.py` |
-| 对应截图或文件 | 截图待补；相关文件：`code/task3_image_server.py` |
+| 对应截图或文件 | 当时未截图，仅保留文字复盘；相关文件：`code/task3_image_server.py` |
 
 ### 10.6 pyc 缓存曾被 Git 跟踪
 
@@ -406,7 +406,7 @@ API 调用后的输出检查截图：
 | 现象 / 报错 | `task3_image_inference.cpython-314.pyc` 这类 Python 字节码缓存曾进入版本控制 |
 | 原因判断 | `.gitignore` 初始没有及时忽略 Python 缓存 |
 | 解决方法 | 增加 `.gitignore` 规则，并用 `git rm --cached` 清理已跟踪缓存文件 |
-| 对应截图或文件 | 截图待补；相关文件：`.gitignore` |
+| 对应截图或文件 | 当时未截图，仅保留文字复盘；相关文件：`.gitignore` |
 
 ## 11. 截图记录
 
@@ -423,9 +423,9 @@ API 调用后的输出检查截图：
 | `assets/06-fastapi-curl-test.png` | curl 接口测试 |
 | `assets/06-fastapi-image-output-check.png` | API 调用后图片检查 |
 | `assets/06-task3-pass.png` | 平台检测通过 |
-| 截图待补 | Vim `.swp` 问题 |
-| 截图待补 | 本地仓库缺少 `task3_image_server.py` |
-| 截图待补 | pyc 缓存清理过程 |
+| 无截图记录 | Vim `.swp` 问题 |
+| 无截图记录 | 本地仓库缺少 `task3_image_server.py` |
+| 无截图记录 | pyc 缓存清理过程 |
 
 ## 12. 复现检查清单
 

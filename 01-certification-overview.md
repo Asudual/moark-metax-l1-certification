@@ -13,7 +13,7 @@
 | 实际任务覆盖 | 模型部署、API 服务、文本生成、图像生成、ASR、TTS、OCR、Embedding / Rerank |
 | 芯片环境 | 沐曦 GPU |
 | 当前任务数量 | 共 7 项考核 |
-| 当前进度 | 已通过 0 项 |
+| 当前进度 | 已通过 7 项 |
 | 认证入口 | https://moark.com/certification/1 |
 
 认证详情首页截图如下：
@@ -293,16 +293,28 @@ Z-Image-Turbo / Qwen-Image-2512
 
 ### 5.5 任务 5：部署语音合成模型
 
+实际使用模型：
+
+```text
+IndexTTS-2
+```
+
 模型路径：
 
 ```text
-/mnt/moark-models/Qwen3-TTS-12Hz-1.7B-Base
+/mnt/moark-models/IndexTTS-2
+```
+
+IndexTTS 仓库路径：
+
+```text
+/mnt/moark-models/github/index-tts
 ```
 
 参考音频：
 
 ```text
-/mnt/moark-models/L1_exam/tts_reference_voice.mp3
+/mnt/moark-models/github/index-tts/emo_sad.wav
 ```
 
 任务一：单次 TTS 推理
