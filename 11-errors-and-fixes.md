@@ -50,6 +50,7 @@
 | 29 | 平台 multipart/form-data 导致 500 | Task 5 平台检测 | 本地 JSON 成功，平台检测 HTTP 500 | 服务端兼容 multipart/form-data |
 | 30 | FastAPI 异常包含音频二进制 | Task 5 form 异常处理 | `jsonable_encoder` 解码 bytes 触发 UnicodeDecodeError | 手动解析请求并避免返回二进制错误体 |
 | 31 | 响应缺少 b64_json | Task 5 平台检测 | API 响应格式错误 | 返回顶层 `b64_json` 和 `data[0].b64_json` |
+| 32 | uvicorn 模块路径导入失败 | Task 6 OCR 服务启动 | `code.task6_ocr_server:app` 无法正确导入 | 使用 `--app-dir /data/code task6_ocr_server:app` |
 
 ---
 
@@ -712,7 +713,48 @@ VLLM_USE_V1=0 vllm serve /mnt/moark-models/Qwen3-8B \
 
 ---
 
-## 34. 经验总结
+## 34. Task 6 uvicorn 模块路径导入失败
+
+| 项目 | 内容 |
+|---|---|
+| 问题名称 | uvicorn 使用 `code.task6_ocr_server:app` 启动失败 |
+| 发生阶段 | Task 6 OCR FastAPI 服务启动 |
+| 现象 / 报错 | uvicorn 无法正确导入 `code.task6_ocr_server:app` |
+| 原因判断 | `code` 可能与 Python 标准库 `code` 模块冲突；或者 `/data/code` 目录不是 Python package |
+| 解决方法 | 使用 `--app-dir /data/code` 指定脚本目录，并启动 `task6_ocr_server:app` |
+| 正确命令 | `uvicorn --app-dir /data/code task6_ocr_server:app --host 0.0.0.0 --port 8188` |
+| 对应截图或相关文件 | `assets/09-ocr-fastapi-server-start.png`、`code/task6_ocr_server.py` |
+
+截图：
+
+![ocr-fastapi-server-start](assets/09-ocr-fastapi-server-start.png)
+
+说明：
+
+这个问题不是 FireRed-OCR 模型加载失败，而是 Python 模块导入路径问题。后续如果脚本放在 `/data/code`，优先使用 `--app-dir` 方式启动服务。
+
+---
+
+## 35. Task 6 最终通过
+
+| 项目 | 内容 |
+|---|---|
+| 问题名称 | Task 6 OCR 最终通过 |
+| 发生阶段 | 平台检测 |
+| 现象 / 报错 | 无新的报错，任务 6 检测通过 |
+| 原因判断 | 单次推理、输出文件、FastAPI 服务、curl 上传图片和 JSON 返回均满足平台要求 |
+| 解决方法 | 保持 `/v1/vision/ocr` 服务运行后提交检测 |
+| 对应截图或相关文件 | `assets/09-task6-pass.png`、`assets/09-ocr-fastapi-curl-test.png`、`code/task6_ocr_inference.py`、`code/task6_ocr_server.py` |
+
+截图：
+
+![task6-pass](assets/09-task6-pass.png)
+
+![ocr-fastapi-curl-test](assets/09-ocr-fastapi-curl-test.png)
+
+---
+
+## 36. 经验总结
 
 | 经验 | 说明 |
 |---|---|
@@ -731,3 +773,4 @@ VLLM_USE_V1=0 vllm serve /mnt/moark-models/Qwen3-8B \
 | TTS 服务不能只测 JSON | 平台可能使用 `multipart/form-data`，需要同时兼容两种请求格式 |
 | 生成音频接口要关注响应格式 | 任务 5 平台会检查 `b64_json`，只保存 WAV 文件还不够 |
 | 模型目录只读时要迁移缓存 | `/mnt/moark-models` 下的缓存写入失败时，可以把缓存目录改到 `/tmp` |
+| uvicorn 启动脚本时避免 `code.xxx` | `code` 容易和标准库模块名冲突，服务脚本在 `/data/code` 时可用 `--app-dir /data/code` |
