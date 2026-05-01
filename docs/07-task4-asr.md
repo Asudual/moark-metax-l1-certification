@@ -1,88 +1,102 @@
-# 07 任务 4：Qwen3-ASR-1.7B 语音识别
+# 07｜任务 4：部署语音识别模型
+
+本文记录模力方舟 L1 认证任务 4 的完整实验过程。文档保留了失败尝试、模型配置判断、依赖安装、单次推理、FastAPI 封装、curl 测试和平台检测结果，方便后续同学复现和排错。
 
 ## 1. 任务目标
 
-任务 4 的目标是部署 ASR 语音识别模型，并提供文件上传形式的语音转写接口。
-
-本任务完成内容：
-
-1. 使用 `Qwen3-ASR-1.7B` 完成单次语音识别推理。
-2. 使用 `qwen-asr` 加载 ASR 模型。
-3. 使用 FastAPI 部署 HTTP 服务。
-4. 提供接口：
+任务名称：
 
 ```text
-/v1/audio/transcriptions
+部署语音识别模型
 ```
 
-5. 使用 `multipart/form-data` 上传音频文件。
-6. 使用 `curl` 调用接口完成测试。
-7. 在认证平台完成检测，并记录截图与 Git 提交。
+本任务需要使用本地 ASR 模型识别一段音频，并部署一个接收 `multipart/form-data` 上传音频的 FastAPI 服务。
+
+最终完成结果：
+
+| 项目 | 内容 |
+|---|---|
+| 使用模型 | `Qwen3-ASR-1.7B` |
+| 模型路径 | `/mnt/moark-models/Qwen3-ASR-1.7B` |
+| 测试音频 | `/mnt/moark-models/L1_exam/asr_demo.wav` |
+| 推理包 | `qwen-asr` |
+| 模型类 | `Qwen3ASRModel` |
+| 输出文件 | `/data/exam/asr_output.txt` |
+| API 端口 | `8188` |
+| API 接口 | `/v1/audio/transcriptions` |
+| 上传方式 | `multipart/form-data` |
+| 文件字段 | `file` |
+| API 返回格式 | `{"text": "..."}` |
+| 平台检测 | 已通过 |
 
 任务详情截图：
 
-![任务 4 详情](../assets/07-task4-detail.png)
+![任务 4 详情](assets/07-task4-detail.png)
 
-说明：当前仓库没有 `screenshots/` 目录；已有截图统一保存在 `assets/` 目录中，本文只引用仓库中真实存在的截图文件。
+## 2. 任务要求整理
 
-## 2. 环境检查
+根据任务页面和实际检测要求，本任务可以拆成下面几步：
 
-本任务依赖 Python、PyTorch、FastAPI、python-multipart、qwen-asr 以及本地 ASR 模型文件。
+1. 检查 ASR 模型路径和测试音频路径。
+2. 检查并安装 ASR 推理、音频处理和 FastAPI 上传所需依赖。
+3. 尝试加载模型，记录失败路径。
+4. 发现 Transformers 自动类不识别 `qwen3_asr` 后，检查 `config.json`。
+5. 查看 README，改用 `qwen-asr` 包和 `Qwen3ASRModel`。
+6. 先完成单次音频识别，生成 `/data/exam/asr_output.txt`。
+7. 使用 FastAPI 封装 `/v1/audio/transcriptions` 接口。
+8. 使用 `curl` 以 `multipart/form-data` 上传音频测试接口。
+9. API 调用后保存识别结果到 `/data/exam/asr_output.txt`。
+10. 保持服务运行，回到认证平台申请检测。
 
-环境检查示例命令：
+## 3. 环境与模型路径检查
 
-```bash
-python -c "import torch; print(torch.cuda.is_available())"
-python -c "import qwen_asr; print(qwen_asr)"
-pip list | grep -E "qwen|fastapi|uvicorn|python-multipart|torch"
-```
-
-实际命令文本输出未在仓库中保存为日志文件，结果以截图记录为准：
-
-![任务 4 包检查](../assets/07-task4-package-check.png)
-
-依赖安装过程截图：
-
-![任务 4 安装依赖](../assets/07-task4-install-deps.png)
-
-`qwen-asr` 安装过程截图：
-
-![安装 qwen-asr](../assets/07-task4-install-qwen-asr.png)
-
-## 3. 模型路径
-
-任务 4 使用的 ASR 模型为：
+本任务需要同时确认模型路径和测试音频路径：
 
 ```text
 /mnt/moark-models/Qwen3-ASR-1.7B
-```
-
-单次推理使用的测试音频为：
-
-```text
 /mnt/moark-models/L1_exam/asr_demo.wav
 ```
 
-代码中的相关文件：
+路径检查截图：
 
-```text
-code/task4_asr_inference.py
-code/task4_asr_server.py
+![ASR 模型和音频路径检查](assets/07-asr-model-audio-path-check.png)
+
+依赖检查示例：
+
+```bash
+python -c "import torch; print(torch.cuda.is_available())"
+pip list | grep -E "accelerate|librosa|soundfile|fastapi|uvicorn|python-multipart|qwen"
 ```
 
-模型与音频路径检查截图：
+包检查截图：
 
-![ASR 模型与音频路径检查](../assets/07-asr-model-audio-path-check.png)
+![任务 4 包检查](assets/07-task4-package-check.png)
 
-模型配置检查截图：
+基础依赖安装截图：
 
-![ASR 模型配置检查](../assets/07-asr-model-config-check.png)
+![任务 4 安装依赖](assets/07-task4-install-deps.png)
 
-模型配置细节检查截图：
+安装 `qwen-asr`：
 
-![ASR 模型配置细节检查](../assets/07-asr-model-config-detail-check.png)
+```bash
+pip install -U qwen-asr
+```
 
-## 4. 单次推理
+安装截图：
+
+![安装 qwen-asr](assets/07-task4-install-qwen-asr.png)
+
+模型配置检查中确认：
+
+| 配置项 | 值 |
+|---|---|
+| `model_type` | `qwen3_asr` |
+| `architectures` | `Qwen3ASRForConditionalGeneration` |
+| `auto_map` | None |
+
+这个配置说明单纯加 `trust_remote_code=True` 不能让 Transformers 自动识别该模型，后续需要改用 `qwen-asr` 包。
+
+## 4. 单次推理代码
 
 单次推理脚本：
 
@@ -90,10 +104,45 @@ code/task4_asr_server.py
 code/task4_asr_inference.py
 ```
 
-该脚本会加载本地模型目录，识别测试音频，并保存识别文本到：
+脚本核心配置：
 
-```text
-/data/exam/asr_output.txt
+```python
+MODEL_PATH = "/mnt/moark-models/Qwen3-ASR-1.7B"
+AUDIO_PATH = "/mnt/moark-models/L1_exam/asr_demo.wav"
+OUTPUT_PATH = "/data/exam/asr_output.txt"
+```
+
+正确的模型加载方式：
+
+```python
+from qwen_asr import Qwen3ASRModel
+
+model = Qwen3ASRModel.from_pretrained(
+    MODEL_PATH,
+    torch_dtype=torch.bfloat16,
+    low_cpu_mem_usage=True,
+    use_safetensors=True,
+)
+```
+
+注意：这里不能传 `backend="transformers"`，否则会出现 unexpected keyword argument `backend`。
+
+正确的语言参数：
+
+```python
+result = model.transcribe(
+    AUDIO_PATH,
+    language="Chinese",
+)
+```
+
+注意：`language="zh"` 不被支持，单次推理中需要传 `language="Chinese"`。
+
+输出保存：
+
+```python
+with open(OUTPUT_PATH, "w", encoding="utf-8") as f:
+    f.write(text)
 ```
 
 单次推理示例命令：
@@ -102,15 +151,25 @@ code/task4_asr_inference.py
 python code/task4_asr_inference.py
 ```
 
-实际命令文本输出未在仓库中保存为日志文件，结果以截图记录为准：
+## 5. 单次推理结果
 
-![ASR 单次推理输出](../assets/07-asr-inference-output.png)
+单次推理已经成功识别测试音频，并保存结果到：
+
+```text
+/data/exam/asr_output.txt
+```
+
+推理输出截图：
+
+![ASR 单次推理输出](assets/07-asr-inference-output.png)
 
 输出文件检查截图：
 
-![ASR 输出文件检查](../assets/07-asr-output-file-check.png)
+![ASR 输出文件检查](assets/07-asr-output-file-check.png)
 
-## 5. FastAPI 服务
+说明：识别文本内容以截图和 `/data/exam/asr_output.txt` 为准，仓库中没有单独保存完整命令文本日志。
+
+## 6. API 服务代码
 
 FastAPI 服务脚本：
 
@@ -118,51 +177,108 @@ FastAPI 服务脚本：
 code/task4_asr_server.py
 ```
 
-服务启动后监听：
+服务端核心配置：
 
-```text
-0.0.0.0:8188
+```python
+MODEL_PATH = "/mnt/moark-models/Qwen3-ASR-1.7B"
+OUTPUT_PATH = "/data/exam/asr_output.txt"
+
+app = FastAPI(title="Task 4 ASR API")
 ```
 
-核心接口：
+启动时加载模型：
 
-```text
-POST /v1/audio/transcriptions
+```python
+@app.on_event("startup")
+def load_model():
+    global model
+
+    os.makedirs("/data/exam", exist_ok=True)
+
+    model = Qwen3ASRModel.from_pretrained(
+        MODEL_PATH,
+        torch_dtype=torch.bfloat16,
+        low_cpu_mem_usage=True,
+        use_safetensors=True,
+    )
 ```
 
-接口接收 `multipart/form-data`，其中：
+语言参数归一化：
 
-| 字段 | 说明 |
-|---|---|
-| `file` | 必填，上传音频文件 |
-| `model` | 可选，默认 `Qwen3-ASR-1.7B` |
-| `language` | 可选，默认 `zh`，服务内会归一化为 `Chinese` |
+```python
+def normalize_language(language: Optional[str]) -> str:
+    if not language:
+        return "Chinese"
 
-服务会在启动时加载：
+    mapping = {
+        "zh": "Chinese",
+        "zh-cn": "Chinese",
+        "cn": "Chinese",
+        "chinese": "Chinese",
+        "en": "English",
+        "english": "English",
+    }
 
-```text
-/mnt/moark-models/Qwen3-ASR-1.7B
+    return mapping.get(language.strip().lower(), language.strip())
 ```
 
-识别文本会保存到：
+接口路径和上传字段：
 
-```text
-/data/exam/asr_output.txt
+```python
+@app.post("/v1/audio/transcriptions")
+async def transcribe_audio(
+    file: UploadFile = File(...),
+    model_name: Optional[str] = Form(default="Qwen3-ASR-1.7B", alias="model"),
+    language: Optional[str] = Form(default="zh"),
+):
 ```
 
-服务启动示例命令：
+API 调用后会把识别文本保存到任务要求路径：
+
+```python
+with open(OUTPUT_PATH, "w", encoding="utf-8") as f:
+    f.write(text)
+```
+
+服务启动方式：
 
 ```bash
 python code/task4_asr_server.py
 ```
 
+服务监听：
+
+```text
+0.0.0.0:8188
+```
+
 服务启动截图：
 
-![FastAPI ASR 服务启动](../assets/07-fastapi-asr-server-start.png)
+![FastAPI ASR 服务启动](assets/07-fastapi-asr-server-start.png)
 
-## 6. curl 测试
+## 7. curl 测试
 
-接口测试示例命令：
+接口：
+
+```text
+POST http://127.0.0.1:8188/v1/audio/transcriptions
+```
+
+上传方式：
+
+```text
+multipart/form-data
+```
+
+字段：
+
+| 字段 | 是否必填 | 说明 |
+|---|---|---|
+| `file` | 是 | 上传音频文件 |
+| `model` | 否 | 默认 `Qwen3-ASR-1.7B` |
+| `language` | 否 | 默认 `zh`，服务内部归一化为 `Chinese` |
+
+示例请求：
 
 ```bash
 curl -X POST "http://127.0.0.1:8188/v1/audio/transcriptions" \
@@ -171,115 +287,182 @@ curl -X POST "http://127.0.0.1:8188/v1/audio/transcriptions" \
   -F "language=zh"
 ```
 
-说明：以上为示例命令。实际响应内容没有以文本日志形式保存到仓库，不能在文档中补写不存在的完整输出。
+预期返回结构：
+
+```json
+{
+  "text": "..."
+}
+```
+
+说明：实际 curl 响应没有保存为文本日志，所以这里只写请求示例和返回结构，不补写完整识别文本。
 
 curl 测试截图：
 
-![FastAPI ASR curl 测试](../assets/07-fastapi-asr-curl-test.png)
+![FastAPI ASR curl 测试](assets/07-fastapi-asr-curl-test.png)
 
-接口调用后的输出文件检查截图：
+## 8. 输出文件检查
 
-![FastAPI ASR 输出文件检查](../assets/07-fastapi-asr-output-file-check.png)
+任务要求输出文件：
 
-## 7. 平台检测
+```text
+/data/exam/asr_output.txt
+```
 
-完成单次推理、FastAPI 服务启动和 curl 调用后，在认证平台提交检测。
+API 调用后，服务会把识别结果写入该文件。
+
+输出文件检查截图：
+
+![FastAPI ASR 输出文件检查](assets/07-fastapi-asr-output-file-check.png)
+
+## 9. 检测通过结果
+
+完成单次推理、API 服务启动、curl 测试和输出文件检查后，在认证平台申请检测。
+
+检测结果：
+
+```text
+任务 4 已通过
+```
 
 平台检测通过截图：
 
-![任务 4 平台检测通过](../assets/07-task4-pass.png)
+![任务 4 平台检测通过](assets/07-task4-pass.png)
 
-## 8. 问题记录与解决过程
+## 10. 遇到的问题与解决方案
 
-### 8.1 依赖安装与版本检查
+### 10.1 初始环境缺少 ASR 相关依赖
 
-任务 4 需要使用 `qwen-asr` 加载 Qwen3-ASR 模型，并通过 FastAPI 接收音频上传。由于接口使用 `multipart/form-data`，还需要确保 `python-multipart` 可用。
+| 项目 | 内容 |
+|---|---|
+| 发生阶段 | 环境检查和服务封装前 |
+| 现象 / 报错 | 缺少 `accelerate`、`librosa`、`soundfile`、`fastapi`、`uvicorn`、`python-multipart` 等依赖 |
+| 原因判断 | ASR 推理需要音频处理依赖，FastAPI 接收 `multipart/form-data` 需要 `python-multipart` |
+| 解决方法 | 安装基础依赖后再安装 `qwen-asr` |
+| 对应截图或文件 | `assets/07-task4-install-deps.png`、`assets/07-task4-package-check.png` |
 
-处理过程：
+### 10.2 使用 Whisper 示例加载失败
 
-1. 检查 PyTorch、FastAPI、uvicorn、python-multipart、qwen-asr 等依赖；
-2. 安装任务所需的基础依赖；
-3. 安装并确认 `qwen-asr` 可导入；
-4. 再进入模型路径、测试音频路径和单次推理检查。
+| 项目 | 内容 |
+|---|---|
+| 发生阶段 | 第一次尝试加载 ASR 模型 |
+| 现象 / 报错 | 参考 Whisper 示例使用 `AutoModelForSpeechSeq2Seq`，Transformers 不识别 `qwen3_asr` |
+| 原因判断 | Qwen3-ASR 不是普通 Whisper 架构 |
+| 解决方法 | 停止套用 Whisper 示例，检查 `config.json` 和 README |
+| 对应截图或文件 | `assets/11-task4-transformers-qwen3-asr-unsupported.png` |
 
-相关过程只以真实截图记录：
+截图：
 
-![任务 4 包检查](../assets/07-task4-package-check.png)
+![Transformers 不识别 qwen3_asr](assets/11-task4-transformers-qwen3-asr-unsupported.png)
 
-![任务 4 安装依赖](../assets/07-task4-install-deps.png)
+### 10.3 `trust_remote_code=True` 不能解决
 
-![安装 qwen-asr](../assets/07-task4-install-qwen-asr.png)
+| 项目 | 内容 |
+|---|---|
+| 发生阶段 | 模型配置检查 |
+| 现象 / 报错 | `config.json` 中 `model_type` 为 `qwen3_asr`，`architectures` 为 `Qwen3ASRForConditionalGeneration`，但 `auto_map` 为 None |
+| 原因判断 | 没有 `auto_map` 时，Transformers 自动类没有可用的 remote code 映射 |
+| 解决方法 | 改按 README 使用 `qwen-asr` 包 |
+| 对应截图或文件 | `assets/07-asr-model-audio-path-check.png` |
 
-### 8.2 同时检查模型路径和测试音频路径
+### 10.4 改用 qwen-asr 包
 
-任务 4 不只需要确认模型目录存在，还需要确认测试音频存在，否则单次推理无法完成。
+| 项目 | 内容 |
+|---|---|
+| 发生阶段 | 加载方案切换 |
+| 现象 / 报错 | Transformers 自动类路径不适合该模型 |
+| 原因判断 | README 指向 `qwen-asr` 和 `Qwen3ASRModel` |
+| 解决方法 | 执行 `pip install -U qwen-asr`，脚本中使用 `from qwen_asr import Qwen3ASRModel` |
+| 对应截图或文件 | `assets/07-task4-install-qwen-asr.png`、`code/task4_asr_inference.py` |
 
-本次使用的 ASR 模型路径：
+### 10.5 `backend="transformers"` 参数错误
 
-```text
-/mnt/moark-models/Qwen3-ASR-1.7B
-```
+| 项目 | 内容 |
+|---|---|
+| 发生阶段 | 第一次使用 `Qwen3ASRModel.from_pretrained()` |
+| 现象 / 报错 | 传 `backend="transformers"` 导致 unexpected keyword argument `backend` |
+| 原因判断 | 当前 `qwen-asr` 的 `from_pretrained()` 不接受该参数 |
+| 解决方法 | 移除 `backend` 参数，保留 `torch_dtype=torch.bfloat16`、`low_cpu_mem_usage=True`、`use_safetensors=True` |
+| 对应截图或文件 | `assets/11-task4-qwen-asr-backend-arg-error.png` |
 
-本次使用的测试音频路径：
+截图：
 
-```text
-/mnt/moark-models/L1_exam/asr_demo.wav
-```
+![qwen-asr backend 参数错误](assets/11-task4-qwen-asr-backend-arg-error.png)
 
-路径检查截图：
+### 10.6 `language="zh"` 不被支持
 
-![ASR 模型与音频路径检查](../assets/07-asr-model-audio-path-check.png)
+| 项目 | 内容 |
+|---|---|
+| 发生阶段 | 模型加载成功后的转写调用 |
+| 现象 / 报错 | `language="zh"` 不被支持 |
+| 原因判断 | `qwen-asr` 需要完整语言名称 |
+| 解决方法 | 单次推理使用 `language="Chinese"`；API 服务允许传 `zh`，但服务内部归一化为 `Chinese` |
+| 对应截图或文件 | 截图待补；相关文件：`code/task4_asr_inference.py`、`code/task4_asr_server.py` |
 
-### 8.3 language=zh 的服务内归一化
+### 10.7 heredoc 粘贴脚本结尾污染
 
-FastAPI 接口中 `language` 字段可以传入 `zh`。服务内部会通过 `normalize_language` 将常见语言简写归一化。
+| 项目 | 内容 |
+|---|---|
+| 发生阶段 | 脚本编辑 |
+| 现象 / 报错 | 使用 heredoc 粘贴脚本时，结尾可能混入多余文本 |
+| 原因判断 | 多行终端粘贴容易受到结束符或复制范围影响 |
+| 解决方法 | 后续改用 Python `Path.write_text()` 或重新覆盖脚本 |
+| 对应截图或文件 | 截图待补；相关文件：`code/task4_asr_inference.py`、`code/task4_asr_server.py` |
 
-在本任务中：
+### 10.8 本地仓库后来缺少 Task 4 脚本
 
-```text
-zh -> Chinese
-```
+| 项目 | 内容 |
+|---|---|
+| 发生阶段 | 本地仓库复核 |
+| 现象 / 报错 | 任务 4 已通过，但本地仓库曾缺少推理脚本和服务脚本 |
+| 原因判断 | 云端实验环境和本地仓库文件不同步 |
+| 解决方法 | 补回 `code/task4_asr_inference.py` 和 `code/task4_asr_server.py` |
+| 对应截图或文件 | 截图待补；相关文件：`code/task4_asr_inference.py`、`code/task4_asr_server.py` |
 
-这样处理是为了让接口调用保持简单，同时满足 `qwen-asr` 推理调用中对语言参数的实际要求。
+## 11. 截图记录
 
-### 8.4 先单次推理，再封装 FastAPI
+| 截图 | 说明 |
+|---|---|
+| `assets/07-task4-detail.png` | 任务 4 详情 |
+| `assets/07-asr-model-audio-path-check.png` | ASR 模型和音频路径检查 |
+| `assets/07-task4-package-check.png` | 包检查 |
+| `assets/07-task4-install-deps.png` | 安装基础依赖 |
+| `assets/07-task4-install-qwen-asr.png` | 安装 qwen-asr |
+| `assets/07-asr-inference-output.png` | 单次推理输出 |
+| `assets/07-asr-output-file-check.png` | 单次推理输出文件检查 |
+| `assets/07-fastapi-asr-server-start.png` | FastAPI 服务启动 |
+| `assets/07-fastapi-asr-curl-test.png` | curl 接口测试 |
+| `assets/07-fastapi-asr-output-file-check.png` | API 调用后输出文件检查 |
+| `assets/07-task4-pass.png` | 平台检测通过 |
+| `assets/11-task4-transformers-qwen3-asr-unsupported.png` | Transformers 不识别 qwen3_asr |
+| `assets/11-task4-qwen-asr-backend-arg-error.png` | qwen-asr backend 参数错误 |
+| 截图待补 | `language="zh"` 不被支持 |
+| 截图待补 | heredoc 粘贴脚本结尾污染 |
+| 截图待补 | 本地仓库缺少 Task 4 脚本 |
 
-处理顺序是先用 `code/task4_asr_inference.py` 完成一次本地音频识别，确认模型可加载、测试音频可读取、识别文本可写入 `/data/exam/asr_output.txt`。
+## 12. 复现检查清单
 
-单次推理通过后，再将同一模型加载和转写流程封装到 `code/task4_asr_server.py`，通过 FastAPI 暴露 `/v1/audio/transcriptions` 接口。
+| 检查项 | 应满足的结果 |
+|---|---|
+| 模型目录存在 | `/mnt/moark-models/Qwen3-ASR-1.7B` |
+| 测试音频存在 | `/mnt/moark-models/L1_exam/asr_demo.wav` |
+| 依赖可导入 | `torch`、`qwen_asr`、`fastapi`、`uvicorn` 可用 |
+| 上传依赖可用 | `python-multipart` 已安装 |
+| 单次推理脚本存在 | `code/task4_asr_inference.py` |
+| 服务脚本存在 | `code/task4_asr_server.py` |
+| 模型加载方式 | `Qwen3ASRModel.from_pretrained()` |
+| `from_pretrained` 参数 | 不传 `backend` |
+| 单次推理语言参数 | `language="Chinese"` |
+| API 入参语言 | 可传 `language=zh`，服务内归一化为 `Chinese` |
+| 单次推理输出 | `/data/exam/asr_output.txt` |
+| 服务端口 | `8188` |
+| 服务接口 | `/v1/audio/transcriptions` |
+| 上传字段 | `file` |
+| curl 返回 | 包含 `text` |
+| 平台检测 | 任务 4 通过 |
 
-这样可以把问题拆开：如果单次推理失败，优先排查依赖、模型路径、音频路径和模型调用参数；如果单次推理成功但接口失败，再排查 multipart 上传字段、端口和响应格式。
+## 13. 本任务小结
 
-### 8.5 curl 响应记录方式
+任务 4 最终使用 `/mnt/moark-models/Qwen3-ASR-1.7B` 中的本地模型完成语音识别。最开始参考 Whisper 示例使用 `AutoModelForSpeechSeq2Seq` 失败，排查 `config.json` 后确认 Transformers 自动类不能直接识别 `qwen3_asr`。随后根据 README 改用 `qwen-asr` 包和 `Qwen3ASRModel`。
 
-curl 测试已经完成，并有截图记录：
-
-![FastAPI ASR curl 测试](../assets/07-fastapi-asr-curl-test.png)
-
-但实际 curl 响应没有保存为文本日志文件。因此本文只保留示例命令和真实截图，不编造不存在的响应正文、命令输出或额外截图。
-
-## 9. Git 提交
-
-任务 4 相关 Git 记录来自当前仓库历史：
-
-```text
-e60d793 task4: complete asr deployment
-```
-
-对应版本标签记录在当前仓库历史中：
-
-```text
-v0.3-task4-asr
-```
-
-当前标签所在提交：
-
-```text
-7668913 chore: add missing task3 task4 scripts and ignore cache
-```
-
-## 10. 本任务总结
-
-任务 4 已完成 `Qwen3-ASR-1.7B` 的单次语音识别推理和 FastAPI 服务部署，接口路径为 `/v1/audio/transcriptions`，上传方式为 `multipart/form-data`，服务端口为 `8188`。
-
-仓库中已有任务详情、依赖安装、模型检查、单次推理、服务启动、curl 测试、输出文件检查和平台检测通过截图。由于没有保存完整命令文本输出，本文只记录示例命令，并将实际结果指向真实截图。
+推理过程中还处理了两个关键参数问题：`from_pretrained()` 不能传 `backend="transformers"`，转写时不能传 `language="zh"`，需要使用 `language="Chinese"`。最终单次推理生成 `/data/exam/asr_output.txt`，FastAPI 服务运行在 `8188` 端口，接口为 `/v1/audio/transcriptions`，支持 `multipart/form-data` 上传音频，并在 API 调用后保存识别结果。认证平台检测结果为任务 4 通过。
