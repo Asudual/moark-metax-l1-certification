@@ -1,13 +1,17 @@
 # 11｜问题与解决记录
 
-本文记录“任务 2：部署文本生成模型”中真实发生过的问题与解决过程，信息来源为：
+本文记录任务 2、任务 3、任务 4 中真实发生过的问题与解决过程，信息来源为：
 
 - `05-task2-text-model.md`
+- `06-task3-image-model.md`
+- `07-task4-asr.md`
 - `00-running-log.md`
 - `docs-check-report.md`
 - `assets/rename-report.md`
+- `assets/`
+- `code/`
 
-重点是保留 vLLM / MetaX 的排错链，不把失败过程删掉。失败过程本身也是实验手册的一部分，可以帮助后续同学判断问题发生在 Python 代码、镜像选择、模型输出、vLLM 引擎，还是底层实例状态。
+重点是保留文本生成、图像生成、ASR 语音识别中的真实排错链，不把失败过程删掉。失败过程本身也是实验手册的一部分，可以帮助后续同学判断问题发生在 Python 代码、依赖安装、模型路径、模型调用方式、接口封装，还是底层实例状态。
 
 ---
 
@@ -25,6 +29,20 @@
 | 8 | `VLLM_USE_V1=0` 触发 `AssertionError` | vLLM 参数排查 | 关闭 V1 engine 后直接断言失败 | 不再关闭 V1 engine |
 | 9 | 第一台 vLLM 实例 Qwen3-0.6B 也启动失败 | 官方示例模型验证 | 小模型同样 EngineCore 初始化失败 | 判断不是模型大小单一原因，释放并重建实例 |
 | 10 | 重建 vLLM 实例后成功 | 最终验证 | Qwen3-0.6B 和 Qwen3-8B 服务均跑通 | 任务 2 最终检测通过 |
+| 11 | 缺少 diffusers / accelerate | Task 3 依赖检查 | 图像模型推理前依赖不完整 | 安装并检查 diffusers、accelerate 等依赖 |
+| 12 | 需要根据 `model_index.json` 判断 pipeline | Task 3 模型加载 | 不能直接猜 pipeline 类 | 读取 `model_index.json`，确认 Z-Image-Turbo 使用 `ZImagePipeline` |
+| 13 | Vim 编辑时出现 `.swp` 交换文件 | Task 3 脚本编辑 | 旧 Vim 进程或 swap 文件阻塞编辑 | 清理旧 Vim 进程和 swap 文件后继续 |
+| 14 | `file` 命令不可用 | Task 3 输出检查 | 生成图片后无法用 `file` 检查 | 改用 PIL 检查图片格式、尺寸和模式 |
+| 15 | 本地仓库缺少 `task3_image_server.py` | Task 3 文档整理后复核 | 服务脚本没有在本地仓库中保留 | 补回 `code/task3_image_server.py` |
+| 16 | 误提交 `__pycache__` 文件 | Task 3 Git 清理 | `.pyc` 文件进入版本控制 | 增加 `.gitignore` 并 `git rm --cached` 清理 |
+| 17 | 缺少 ASR 相关依赖 | Task 4 依赖检查 | ASR 推理和 FastAPI 上传依赖不完整 | 安装 accelerate、librosa、soundfile、fastapi、uvicorn、python-multipart |
+| 18 | Whisper 示例加载 Qwen3-ASR 失败 | Task 4 模型加载尝试 | Transformers 不识别 `qwen3_asr` | 放弃 Whisper 示例路径，继续检查模型配置和 README |
+| 19 | `trust_remote_code=True` 不能解决 Qwen3-ASR 加载 | Task 4 模型配置检查 | `auto_map` 为 None | 确认需要使用官方 `qwen-asr` 包 |
+| 20 | 改用 `qwen-asr` 和 `Qwen3ASRModel` | Task 4 方案切换 | README 指向专用加载方式 | 安装 `qwen-asr` 并改用 `Qwen3ASRModel` |
+| 21 | `backend` 参数不被接受 | Task 4 qwen-asr 调用 | `from_pretrained()` 出现 unexpected keyword argument | 移除 `backend="transformers"` |
+| 22 | `language="zh"` 不被支持 | Task 4 ASR 推理 | 语言参数需要完整名称 | 改为 `language="Chinese"`，服务内做归一化 |
+| 23 | heredoc 粘贴脚本结尾污染 | Task 4 脚本编辑 | 脚本结尾混入多余文本 | 用可靠方式重新覆盖脚本 |
+| 24 | 本地仓库缺少 Task 4 脚本 | Task 4 文档整理后复核 | 推理和服务脚本没有在本地仓库中保留 | 补回 `code/task4_asr_inference.py` 和 `code/task4_asr_server.py` |
 
 ---
 
@@ -297,7 +315,255 @@ VLLM_USE_V1=0 vllm serve /mnt/moark-models/Qwen3-8B \
 
 ---
 
-## 12. 经验总结
+## 12. Task 3 缺少 diffusers / accelerate
+
+| 项目 | 内容 |
+|---|---|
+| 问题名称 | Task 3 缺少 diffusers / accelerate |
+| 发生阶段 | 图像生成模型环境检查和单次推理前 |
+| 现象 / 报错 | 初始环境不能直接满足图像生成模型推理要求，需要补充或检查 diffusers、accelerate 等依赖 |
+| 原因判断 | `Z-Image-Turbo` 需要通过 diffusers pipeline 加载，相关依赖不完整时无法进入稳定推理流程 |
+| 解决方法 | 安装或升级 diffusers、accelerate、transformers、sentencepiece、safetensors 等依赖，并用包检查确认环境 |
+| 对应截图或相关文件 | `assets/06-task3-package-check.png`、`assets/06-install-diffusers-accelerate.png`、`code/task3_image_inference.py` |
+
+截图：
+
+![task3-package-check](assets/06-task3-package-check.png)
+
+![install-diffusers-accelerate](assets/06-install-diffusers-accelerate.png)
+
+---
+
+## 13. Task 3 需要根据 `model_index.json` 判断 pipeline
+
+| 项目 | 内容 |
+|---|---|
+| 问题名称 | 需要根据 `model_index.json` 判断 pipeline |
+| 发生阶段 | 图像模型加载方式确认 |
+| 现象 / 报错 | 不能只凭模型名称猜测 pipeline 类；不同图像模型的 `_class_name` 不同 |
+| 原因判断 | 本地模型目录中的 `model_index.json` 才是判断 diffusers pipeline 的依据；最终确认 `Z-Image-Turbo` 对应 `ZImagePipeline` |
+| 解决方法 | 在 `code/task3_image_inference.py` 中读取 `model_index.json`，检查 `_class_name`，再从 diffusers 中选择对应 pipeline |
+| 对应截图或相关文件 | `assets/06-image-model-path-check.png`、`code/task3_image_inference.py`、`code/task3_image_server.py` |
+
+截图：
+
+![image-model-path-check](assets/06-image-model-path-check.png)
+
+---
+
+## 14. Task 3 Vim 编辑时出现 `.swp` 交换文件
+
+| 项目 | 内容 |
+|---|---|
+| 问题名称 | Vim 编辑 `task3_image_inference.py` 时出现 `.swp` 交换文件 |
+| 发生阶段 | 图像推理脚本编辑 |
+| 现象 / 报错 | Vim 提示存在交换文件，说明可能有旧 Vim 进程或上次编辑异常退出 |
+| 原因判断 | 之前编辑脚本时 Vim 会创建 swap 文件；如果会话异常退出或旧进程未清理，再次打开文件会触发提示 |
+| 解决方法 | 先确认没有仍在编辑该文件的 Vim 进程，再清理旧 swap 文件，然后重新编辑脚本 |
+| 对应截图或相关文件 | 截图待补；相关文件：`code/task3_image_inference.py` |
+
+说明：
+
+这个问题属于编辑过程问题，不是模型推理错误。记录它是为了提醒后续同学不要直接覆盖未确认来源的 swap 文件，先判断是否有仍在运行的编辑进程。
+
+---
+
+## 15. Task 3 生成图片后 `file` 命令不可用
+
+| 项目 | 内容 |
+|---|---|
+| 问题名称 | 生成图片后 `file` 命令不可用 |
+| 发生阶段 | 图像输出文件检查 |
+| 现象 / 报错 | 生成 `/data/exam/image_output.png` 后，环境中没有可用的 `file` 命令用于检查文件类型 |
+| 原因判断 | 当前镜像没有提供 `file` 工具，不能依赖系统命令判断图片格式 |
+| 解决方法 | 改用 Python PIL 打开图片，检查格式、尺寸和模式，确认输出是有效图片 |
+| 对应截图或相关文件 | `assets/06-image-output-file-check.png`、`assets/06-fastapi-image-output-check.png`、`code/task3_image_inference.py` |
+
+截图：
+
+![image-output-file-check](assets/06-image-output-file-check.png)
+
+![fastapi-image-output-check](assets/06-fastapi-image-output-check.png)
+
+---
+
+## 16. Task 3 本地仓库缺少 `task3_image_server.py`
+
+| 项目 | 内容 |
+|---|---|
+| 问题名称 | 本地仓库后来缺少 `code/task3_image_server.py` |
+| 发生阶段 | 本地仓库复核和文档整理 |
+| 现象 / 报错 | 任务 3 已完成 FastAPI 部署，但本地仓库中曾缺少对应服务脚本 |
+| 原因判断 | 云端实验环境和本地仓库文件不同步，导致已通过检测的服务脚本没有完整保留到仓库 |
+| 解决方法 | 按已通过检测的接口行为补回 `code/task3_image_server.py`，接口为 `/v1/images/generations`，服务端口为 `8188` |
+| 对应截图或相关文件 | 截图待补；相关文件：`code/task3_image_server.py` |
+
+说明：
+
+该问题不是重新设计任务 3 服务，而是补齐本地仓库记录，方便后续复现。
+
+---
+
+## 17. Task 3 误提交 `__pycache__` 文件
+
+| 项目 | 内容 |
+|---|---|
+| 问题名称 | 误提交 `code/__pycache__/task3_image_inference.cpython-314.pyc` |
+| 发生阶段 | Git 提交和仓库清理 |
+| 现象 / 报错 | Python 字节码缓存文件进入版本控制 |
+| 原因判断 | 初始 `.gitignore` 没有及时覆盖 `__pycache__/` 和 `*.pyc`，导致缓存文件被纳入提交 |
+| 解决方法 | 更新 `.gitignore` 忽略 Python 缓存文件，并通过 `git rm --cached` 从版本控制中移除已跟踪的 `.pyc` |
+| 对应截图或相关文件 | 截图待补；相关文件：`.gitignore`、`code/task3_image_inference.py` |
+
+说明：
+
+这个问题不会影响任务平台检测，但会污染仓库历史和代码审查，所以需要记录清理方式。
+
+---
+
+## 18. Task 4 缺少 ASR 相关依赖
+
+| 项目 | 内容 |
+|---|---|
+| 问题名称 | Task 4 缺少 ASR 相关依赖 |
+| 发生阶段 | ASR 模型环境检查和服务封装前 |
+| 现象 / 报错 | 初始环境缺少 accelerate、librosa、soundfile、fastapi、uvicorn、python-multipart 等依赖 |
+| 原因判断 | ASR 单次推理需要模型和音频处理依赖；FastAPI 上传音频还需要 `python-multipart` 支持 `multipart/form-data` |
+| 解决方法 | 安装并检查 accelerate、librosa、soundfile、fastapi、uvicorn、python-multipart，再继续安装 `qwen-asr` |
+| 对应截图或相关文件 | `assets/07-task4-package-check.png`、`assets/07-task4-install-deps.png`、`code/task4_asr_inference.py`、`code/task4_asr_server.py` |
+
+截图：
+
+![task4-package-check](assets/07-task4-package-check.png)
+
+![task4-install-deps](assets/07-task4-install-deps.png)
+
+---
+
+## 19. Task 4 参考 Whisper 示例使用 AutoModelForSpeechSeq2Seq 失败
+
+| 项目 | 内容 |
+|---|---|
+| 问题名称 | Whisper 示例加载 Qwen3-ASR 失败 |
+| 发生阶段 | 第一次尝试加载 ASR 模型 |
+| 现象 / 报错 | 参考 Whisper 示例使用 `AutoModelForSpeechSeq2Seq`，Transformers 不识别 `qwen3_asr` |
+| 原因判断 | Qwen3-ASR 不是普通 Whisper 架构，不能直接套用 Whisper 的 `AutoModelForSpeechSeq2Seq` 示例 |
+| 解决方法 | 停止沿用 Whisper 示例，转为检查模型 `config.json` 和 README，确认正确加载方式 |
+| 对应截图或相关文件 | `assets/11-task4-transformers-qwen3-asr-unsupported.png`、`assets/07-asr-model-config-check.png` |
+
+截图：
+
+![transformers-qwen3-asr-unsupported](assets/11-task4-transformers-qwen3-asr-unsupported.png)
+
+![asr-model-config-check](assets/07-asr-model-config-check.png)
+
+---
+
+## 20. Task 4 `trust_remote_code=True` 不能解决 Qwen3-ASR 加载
+
+| 项目 | 内容 |
+|---|---|
+| 问题名称 | `trust_remote_code=True` 不能解决 Qwen3-ASR 加载 |
+| 发生阶段 | 检查 ASR 模型配置 |
+| 现象 / 报错 | `config.json` 显示 `model_type` 是 `qwen3_asr`，`architectures` 是 `Qwen3ASRForConditionalGeneration`，但 `auto_map` 为 None |
+| 原因判断 | `trust_remote_code=True` 依赖模型配置中的 remote code 映射；当前配置没有 `auto_map`，所以单纯打开 trust remote code 不能让 Transformers 自动识别模型 |
+| 解决方法 | 不再继续沿用 Transformers 自动类路径，改按 README 使用 `qwen-asr` 包 |
+| 对应截图或相关文件 | `assets/07-asr-model-config-check.png`、`assets/07-asr-model-config-detail-check.png` |
+
+截图：
+
+![asr-model-config-check](assets/07-asr-model-config-check.png)
+
+![asr-model-config-detail-check](assets/07-asr-model-config-detail-check.png)
+
+---
+
+## 21. Task 4 改用 `qwen-asr` 和 `Qwen3ASRModel`
+
+| 项目 | 内容 |
+|---|---|
+| 问题名称 | 改用 `qwen-asr` 和 `Qwen3ASRModel` |
+| 发生阶段 | ASR 加载方案切换 |
+| 现象 / 报错 | Whisper / Transformers 自动类路径不适合该模型，需要使用模型 README 指向的专用包 |
+| 原因判断 | Qwen3-ASR 的正确使用方式是安装 `qwen-asr`，再通过 `Qwen3ASRModel.from_pretrained()` 加载本地模型 |
+| 解决方法 | 安装 `qwen-asr`，脚本中改为 `from qwen_asr import Qwen3ASRModel` |
+| 对应截图或相关文件 | `assets/07-task4-install-qwen-asr.png`、`code/task4_asr_inference.py`、`code/task4_asr_server.py` |
+
+截图：
+
+![install-qwen-asr](assets/07-task4-install-qwen-asr.png)
+
+---
+
+## 22. Task 4 `backend` 参数不被接受
+
+| 项目 | 内容 |
+|---|---|
+| 问题名称 | `Qwen3ASRModel.from_pretrained()` 不接受 `backend` 参数 |
+| 发生阶段 | 第一次使用 `Qwen3ASRModel` 加载模型 |
+| 现象 / 报错 | 传入 `backend="transformers"` 后报 unexpected keyword argument `backend` |
+| 原因判断 | 当前安装的 `qwen-asr` 接口不支持 `backend` 参数，示例或猜测参数不能直接套用 |
+| 解决方法 | 移除 `backend="transformers"`，只保留模型路径、`torch_dtype`、`low_cpu_mem_usage`、`use_safetensors` 等实际支持的参数 |
+| 对应截图或相关文件 | `assets/11-task4-qwen-asr-backend-arg-error.png`、`code/task4_asr_inference.py` |
+
+截图：
+
+![qwen-asr-backend-arg-error](assets/11-task4-qwen-asr-backend-arg-error.png)
+
+---
+
+## 23. Task 4 `language="zh"` 不被支持
+
+| 项目 | 内容 |
+|---|---|
+| 问题名称 | `language="zh"` 不被支持 |
+| 发生阶段 | Qwen3-ASR 单次推理和服务接口参数整理 |
+| 现象 / 报错 | 模型加载成功后，语言参数使用 `zh` 不能满足 `qwen-asr` 的语言参数要求 |
+| 原因判断 | `qwen-asr` 需要使用完整语言名称，中文应传 `Chinese` |
+| 解决方法 | 单次推理中使用 `language="Chinese"`；FastAPI 服务中保留接口入参 `language=zh`，再通过 `normalize_language()` 归一化为 `Chinese` |
+| 对应截图或相关文件 | 截图待补；相关文件：`code/task4_asr_inference.py`、`code/task4_asr_server.py` |
+
+说明：
+
+这个问题解释了为什么服务脚本中需要保留语言归一化逻辑。
+
+---
+
+## 24. Task 4 heredoc 粘贴脚本结尾污染
+
+| 项目 | 内容 |
+|---|---|
+| 问题名称 | heredoc 粘贴脚本时出现结尾污染 |
+| 发生阶段 | ASR 脚本编辑和覆盖 |
+| 现象 / 报错 | 使用 heredoc 粘贴脚本时，结尾标记或后续命令可能混入脚本文本 |
+| 原因判断 | 多行粘贴在终端中容易受到结束符、复制范围或提示符影响，尤其是在快速覆盖脚本时 |
+| 解决方法 | 后续改用更可靠的方式重新覆盖脚本，例如 Python `Path.write_text()` 或重新完整覆盖目标脚本 |
+| 对应截图或相关文件 | 截图待补；相关文件：`code/task4_asr_inference.py`、`code/task4_asr_server.py` |
+
+说明：
+
+这是脚本编辑过程问题，不是 ASR 模型本身问题。后续复现时应优先检查脚本文件结尾是否混入多余文本。
+
+---
+
+## 25. Task 4 本地仓库缺少推理和服务脚本
+
+| 项目 | 内容 |
+|---|---|
+| 问题名称 | 本地仓库后来缺少 `task4_asr_inference.py` 和 `task4_asr_server.py` |
+| 发生阶段 | 本地仓库复核和文档整理 |
+| 现象 / 报错 | 任务 4 已完成单次推理和 FastAPI 部署，但本地仓库中曾缺少对应脚本 |
+| 原因判断 | 云端实验环境和本地仓库文件不同步，导致已通过检测的推理脚本和服务脚本没有完整保留到仓库 |
+| 解决方法 | 补回 `code/task4_asr_inference.py` 和 `code/task4_asr_server.py`，保留 `/v1/audio/transcriptions`、`multipart/form-data` 上传和语言归一化逻辑 |
+| 对应截图或相关文件 | 截图待补；相关文件：`code/task4_asr_inference.py`、`code/task4_asr_server.py` |
+
+说明：
+
+该问题是仓库整理问题。补回脚本的目标是让本地项目能完整表达已经通过检测的任务 4 实现。
+
+---
+
+## 26. 经验总结
 
 | 经验 | 说明 |
 |---|---|
@@ -307,3 +573,9 @@ VLLM_USE_V1=0 vllm serve /mnt/moark-models/Qwen3-8B \
 | MetaX queue 错误不能只改 Python 代码 | 出现 queue、EngineCore、底层设备错误时，要考虑实例状态和运行时环境 |
 | 小模型对照很有价值 | Qwen3-0.6B 也失败时，可以排除“只是 Qwen3-8B 太大”的单一判断 |
 | 重建实例是有效排查手段 | 当同一镜像在旧实例失败、新实例成功时，说明实例状态本身可能是关键变量 |
+| 图像模型先读 `model_index.json` | diffusers pipeline 应以本地模型配置为准，不要直接猜类名 |
+| 图像输出检查不要只依赖系统命令 | 如果镜像缺少 `file`，可以用 PIL 检查格式、尺寸和模式 |
+| ASR 不要直接套 Whisper 示例 | Qwen3-ASR 需要按自身 README 和 `qwen-asr` 包加载 |
+| `trust_remote_code=True` 不是万能解法 | 如果模型配置没有 `auto_map`，Transformers 自动类仍然可能无法识别 |
+| 上传音频接口要安装 `python-multipart` | FastAPI 接收 `multipart/form-data` 时缺少该包会影响服务启动或请求处理 |
+| 实验环境和本地仓库要及时同步 | 已通过检测的脚本需要及时补回仓库，避免后续文档无法复现 |
