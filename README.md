@@ -22,7 +22,7 @@
 
 完整演示视频：[`assets/demo.mp4`](assets/demo.mp4)
 
-`assets/demo.gif` 用于在 README 中快速预览核心流程，`assets/demo.mp4` 用于查看完整演示。Demo 文件放在仓库内展示，不依赖外部社交平台账号，也不暴露个人联系方式。
+`assets/demo.gif` 提供简短预览，`assets/demo.mp4` 提供完整演示视频，便于快速了解项目运行效果。
 
 ## 文档导航
 
