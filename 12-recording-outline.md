@@ -29,14 +29,12 @@
 | 第三段 | 任务 3～6（图像、ASR、TTS、OCR） | 10～15 分钟 |
 | 第四段 | 任务 7（Embedding + Rerank）、错误排查、交付 | 5～8 分钟 |
 
-最终录屏链接：
+最终 Demo 文件：
 
-| 段落 | 主题 | 链接 |
-|---|---|---|
-| 第 1 段 | 项目背景与仓库结构 | https://www.bilibili.com/video/BV1ehRTB2E8N/ |
-| 第 2 段 | 任务1-2 环境检查与文本模型 | https://www.bilibili.com/video/BV1vhRTB2EwP/ |
-| 第 3 段 | 任务3-5 图像ASR与TTS | https://www.bilibili.com/video/BV1ehRTB2Exc/ |
-| 第 4 段 | 任务6-7 OCR与向量检索 | https://www.bilibili.com/video/BV1ehRTB2EUu/ |
+| 文件 | 用途 |
+|---|---|
+| `assets/demo.gif` | README 中的快速预览动图 |
+| `assets/demo.mp4` | 仓库内完整演示视频 |
 
 ---
 

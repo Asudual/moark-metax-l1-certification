@@ -16,14 +16,13 @@
 | 任务 6：部署 OCR 模型 | 已通过 | 已记录 FireRed-OCR 单次推理、FastAPI `/v1/vision/ocr` 和检测通过截图 |
 | 任务 7：部署向量化模型与向量数据库 | 已通过 | 已记录 Qwen3-Embedding-8B、Chroma、bge reranker、1024 维向量和检测通过截图 |
 
-## 录屏链接
+## Demo
 
-| 段落 | 主题 | 链接 |
-|---|---|---|
-| 第 1 段 | 项目背景与仓库结构 | https://www.bilibili.com/video/BV1ehRTB2E8N/ |
-| 第 2 段 | 任务1-2 环境检查与文本模型 | https://www.bilibili.com/video/BV1vhRTB2EwP/ |
-| 第 3 段 | 任务3-5 图像ASR与TTS | https://www.bilibili.com/video/BV1ehRTB2Exc/ |
-| 第 4 段 | 任务6-7 OCR与向量检索 | https://www.bilibili.com/video/BV1ehRTB2EUu/ |
+![Demo preview](assets/demo.gif)
+
+完整演示视频：[`assets/demo.mp4`](assets/demo.mp4)
+
+`assets/demo.gif` 用于在 README 中快速预览核心流程，`assets/demo.mp4` 用于查看完整演示。Demo 文件放在仓库内展示，不依赖外部社交平台账号，也不暴露个人联系方式。
 
 ## 文档导航
 
